@@ -1,0 +1,3 @@
+[submodule "ws2812b"]
+	path = 3parts/ws2812b
+	url = https://github.com/hepingood/ws2812b.git
