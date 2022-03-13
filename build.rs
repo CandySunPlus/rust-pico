@@ -8,6 +8,9 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
+extern crate bindgen;
+extern crate cc;
+
 use std::env;
 use std::fs::File;
 use std::io::Write;
@@ -28,4 +31,25 @@ fn main() {
     // here, we ensure the build script is only re-run when
     // `memory.x` is changed.
     println!("cargo:rerun-if-changed=memory.x");
+
+    cc::Build::new()
+        .file("./3parts/ws2812b/src/driver_ws2812b.c")
+        .shared_flag(false)
+        .compile("libws2812b.a");
+
+    println!("cargo:rustc-link-lib=static=ws2812b");
+    // println!("cargo:rerun-if-changed=wrapper.h");
+
+    // let bindings = bindgen::Builder::default()
+    //     .header("./3parts/wrapper.h")
+    //     .ctypes_prefix("cty")
+    //     .use_core()
+    //     .clang_arg("-target thumbv6m-none-eabi")
+    //     .clang_arg("--sysroot=/usr/arm-none-eabi")
+    // .generate()
+    // .expect("Unable to generate bindings");
+
+    // bindings
+    //     .write_to_file(out.join("bindings.rs"))
+    //     .expect("Couldn't write bindings.");
 }
