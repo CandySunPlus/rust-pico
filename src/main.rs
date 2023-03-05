@@ -4,10 +4,13 @@
 #![no_std]
 #![no_main]
 
-use bsp::entry;
+use bsp::{
+    entry,
+    hal::{prelude::_rphal_pio_PIOExt, Timer},
+};
 use defmt::*;
 use defmt_rtt as _;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::InputPin;
 use panic_probe as _;
 
 // Provide an alias for our BSP so we can switch targets quickly.
@@ -21,6 +24,8 @@ use bsp::hal::{
     sio::Sio,
     watchdog::Watchdog,
 };
+use smart_leds::{colors, SmartLedsWrite, RGB};
+use ws2812_pio::Ws2812;
 
 #[entry]
 fn main() -> ! {
@@ -53,21 +58,183 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
-    // on-board LED, it might need to be changed.
-    // Notably, on the Pico W, the LED is not connected to any of the RP2040 GPIOs but to the cyw43 module instead. If you have
-    // a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
-    // LED to one of the GPIO pins, and reference that pin here.
-    let mut led_pin = pins.led.into_push_pull_output();
+    let up_button_pin = pins.gpio10.into_pull_up_input();
+    let left_button_pin = pins.gpio11.into_pull_up_input();
+    let down_button_pin = pins.gpio12.into_pull_up_input();
+    let right_button_pin = pins.gpio13.into_pull_up_input();
+
+    let sensor_pin = pins.gpio15.into_pull_up_input();
+
+    let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
+
+    let (mut pio, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
+
+    let mut ws = Ws2812::new(
+        pins.gpio2.into_mode(),
+        &mut pio,
+        sm0,
+        clocks.peripheral_clock.freq(),
+        timer.count_down(),
+    );
+
+    let clz = [
+        colors::PINK,
+        colors::LIGHT_PINK,
+        colors::HOT_PINK,
+        colors::DEEP_PINK,
+        colors::PALE_VIOLET_RED,
+        colors::MEDIUM_VIOLET_RED,
+        colors::LIGHT_SALMON,
+        colors::SALMON,
+        colors::DARK_SALMON,
+        colors::LIGHT_CORAL,
+        colors::INDIAN_RED,
+        colors::CRIMSON,
+        colors::FIREBRICK,
+        colors::DARK_RED,
+        colors::ORANGE_RED,
+        colors::TOMATO,
+        colors::CORAL,
+        colors::DARK_ORANGE,
+        colors::ORANGE,
+        colors::LIGHT_YELLOW,
+        colors::LEMON_CHIFFON,
+        colors::LIGHT_GOLDENROD_YELLOW,
+        colors::PAPAYA_WHIP,
+        colors::MOCCASIN,
+        colors::PEACH_PUFF,
+        colors::PALE_GOLDENROD,
+        colors::KHAKI,
+        colors::DARK_KHAKI,
+        colors::GOLD,
+        colors::CORNSILK,
+        colors::BLANCHED_ALMOND,
+        colors::BISQUE,
+        colors::NAVAJO_WHITE,
+        colors::WHEAT,
+        colors::BURLYWOOD,
+        colors::TAN,
+        colors::ROSY_BROWN,
+        colors::SANDY_BROWN,
+        colors::GOLDENROD,
+        colors::DARK_GOLDENROD,
+        colors::PERU,
+        colors::CHOCOLATE,
+        colors::SADDLE_BROWN,
+        colors::SIENNA,
+        colors::BROWN,
+        colors::DARK_OLIVE_GREEN,
+        colors::OLIVE_DRAB,
+        colors::YELLOW_GREEN,
+        colors::LIME_GREEN,
+        colors::LAWN_GREEN,
+        colors::CHARTREUSE,
+        colors::GREEN_YELLOW,
+        colors::SPRING_GREEN,
+        colors::MEDIUM_SPRING_GREEN,
+        colors::LIGHT_GREEN,
+        colors::PALE_GREEN,
+        colors::DARK_SEA_GREEN,
+        colors::MEDIUM_AQUAMARINE,
+        colors::MEDIUM_SEA_GREEN,
+        colors::SEA_GREEN,
+        colors::FOREST_GREEN,
+        colors::DARK_GREEN,
+        colors::CYAN,
+        colors::LIGHT_CYAN,
+        colors::PALE_TURQUOISE,
+        colors::AQUAMARINE,
+        colors::TURQUOISE,
+        colors::MEDIUM_TURQUOISE,
+        colors::DARK_TURQUOISE,
+        colors::LIGHT_SEA_GREEN,
+        colors::CADET_BLUE,
+        colors::DARK_CYAN,
+        colors::LIGHT_STEEL_BLUE,
+        colors::POWDER_BLUE,
+        colors::LIGHT_BLUE,
+        colors::SKY_BLUE,
+        colors::LIGHT_SKY_BLUE,
+        colors::DEEP_SKY_BLUE,
+        colors::DODGER_BLUE,
+        colors::CORNFLOWER_BLUE,
+        colors::STEEL_BLUE,
+        colors::ROYAL_BLUE,
+        colors::MEDIUM_BLUE,
+        colors::DARK_BLUE,
+        colors::MIDNIGHT_BLUE,
+        colors::LAVENDER,
+        colors::THISTLE,
+        colors::PLUM,
+        colors::VIOLET,
+        colors::ORCHID,
+        colors::MAGENTA,
+        colors::MEDIUM_ORCHID,
+        colors::MEDIUM_PURPLE,
+        colors::BLUE_VIOLET,
+        colors::DARK_VIOLET,
+        colors::DARK_ORCHID,
+        colors::DARK_MAGENTA,
+        colors::INDIGO,
+        colors::DARK_SLATE_BLUE,
+        colors::SLATE_BLUE,
+        colors::MEDIUM_SLATE_BLUE,
+        colors::SNOW,
+        colors::HONEYDEW,
+        colors::MINT_CREAM,
+        colors::AZURE,
+        colors::ALICE_BLUE,
+        colors::GHOST_WHITE,
+        colors::WHITE_SMOKE,
+        colors::SEASHELL,
+        colors::BEIGE,
+        colors::OLD_LACE,
+        colors::FLORAL_WHITE,
+        colors::IVORY,
+        colors::ANTINQUE_WHITE,
+        colors::LINEN,
+        colors::LAVENDER_BLUSH,
+        colors::MISTY_ROSE,
+        colors::GAINSBORO,
+        colors::LIGHT_GRAY,
+        colors::DARK_GRAY,
+        colors::DIM_GRAY,
+        colors::LIGHT_SLATE_GRAY,
+        colors::SLATE_GRAY,
+        colors::DARK_SLATE_GRAY,
+    ];
+
+    let mut leds: [RGB<u8>; 4] = (&clz[0..4]).try_into().unwrap();
 
     loop {
-        info!("on!");
-        led_pin.set_high().unwrap();
-        delay.delay_ms(500);
-        info!("off!");
-        led_pin.set_low().unwrap();
-        delay.delay_ms(500);
+        let mut i = 0;
+
+        for color in clz {
+            if i >= leds.len() {
+                i = 0;
+            }
+            leds[i] = color;
+            i += 1;
+            ws.write(leds.iter().copied()).unwrap();
+            delay.delay_ms(50);
+        }
+
+        if up_button_pin.is_low().unwrap() {
+            info!("up!");
+        }
+        if left_button_pin.is_low().unwrap() {
+            info!("left!");
+        }
+        if right_button_pin.is_low().unwrap() {
+            info!("right!");
+        }
+        if down_button_pin.is_low().unwrap() {
+            info!("down!");
+        }
+
+        if sensor_pin.is_low().unwrap() {
+            info!("sensor");
+        }
     }
 }
-
 // End of file
