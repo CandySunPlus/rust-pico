@@ -76,3 +76,11 @@ debug-assertions = false
 incremental = false
 lto = 'fat'
 opt-level = 3
+
+[[bin]]
+name = "dled"
+path = "src/dled.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
