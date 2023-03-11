@@ -5,18 +5,11 @@ use core::ops::Range;
 
 use cortex_m::delay::Delay;
 use defmt::*;
-use defmt_rtt as _;
 use embedded_hal::PwmPin;
-use panic_probe as _;
-use rp_pico::{
-    entry,
-    hal::{
-        clocks, pac,
-        pwm::{self, Slice},
-        Clock, Sio, Watchdog,
-    },
-    Pins, XOSC_CRYSTAL_FREQ,
-};
+use rp_pico::hal::pwm::{self, Slice};
+use rp_pico::hal::{clocks, pac, Clock, Sio, Watchdog};
+use rp_pico::{entry, Pins, XOSC_CRYSTAL_FREQ};
+use {defmt_rtt as _, panic_probe as _};
 
 #[entry]
 fn main() -> ! {
