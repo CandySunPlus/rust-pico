@@ -10,7 +10,6 @@ use bsp::{
 };
 use defmt::*;
 use defmt_rtt as _;
-use embedded_hal::digital::v2::InputPin;
 use panic_probe as _;
 
 // Provide an alias for our BSP so we can switch targets quickly.
@@ -57,13 +56,6 @@ fn main() -> ! {
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
-
-    let up_button_pin = pins.gpio10.into_pull_up_input();
-    let left_button_pin = pins.gpio11.into_pull_up_input();
-    let down_button_pin = pins.gpio12.into_pull_up_input();
-    let right_button_pin = pins.gpio13.into_pull_up_input();
-
-    let sensor_pin = pins.gpio15.into_pull_up_input();
 
     let timer = Timer::new(pac.TIMER, &mut pac.RESETS);
 
@@ -209,31 +201,16 @@ fn main() -> ! {
     loop {
         let mut i = 0;
 
+        info!("flash");
         for color in clz {
             if i >= leds.len() {
                 i = 0;
             }
             leds[i] = color;
             i += 1;
+            info!("writed");
             ws.write(leds.iter().copied()).unwrap();
             delay.delay_ms(50);
-        }
-
-        if up_button_pin.is_low().unwrap() {
-            info!("up!");
-        }
-        if left_button_pin.is_low().unwrap() {
-            info!("left!");
-        }
-        if right_button_pin.is_low().unwrap() {
-            info!("right!");
-        }
-        if down_button_pin.is_low().unwrap() {
-            info!("down!");
-        }
-
-        if sensor_pin.is_low().unwrap() {
-            info!("sensor");
         }
     }
 }

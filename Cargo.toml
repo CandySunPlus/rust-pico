@@ -82,5 +82,5 @@ name = "dled"
 path = "src/dled.rs"
 
 [[bin]]
-name = "main"
-path = "src/main.rs"
+name = "ws2812"
+path = "src/ws2812.rs"
