@@ -4,17 +4,14 @@
 #![no_std]
 #![no_main]
 
-use bsp::entry;
-use bsp::hal::clocks::{init_clocks_and_plls, Clock};
-use bsp::hal::prelude::_rphal_pio_PIOExt;
-use bsp::hal::sio::Sio;
-use bsp::hal::watchdog::Watchdog;
-use bsp::hal::{pac, rom_data, Timer};
 use defmt::*;
-// Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
-use rp_pico as bsp;
-// use sparkfun_pro_micro_rp2040 as bsp;
+use rp_pico::hal::clocks::{init_clocks_and_plls, Clock};
+use rp_pico::hal::prelude::_rphal_pio_PIOExt;
+use rp_pico::hal::sio::Sio;
+use rp_pico::hal::watchdog::Watchdog;
+use rp_pico::hal::{pac, rom_data, Timer};
+use rp_pico::{entry, Pins, XOSC_CRYSTAL_FREQ};
+
 use smart_leds::{brightness, SmartLedsWrite, RGB8};
 use ws2812_pio::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
@@ -27,10 +24,8 @@ fn main() -> ! {
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
     let sio = Sio::new(pac.SIO);
 
-    // External high-speed crystal on the pico board is 12Mhz
-    let external_xtal_freq_hz = 12_000_000u32;
     let clocks = init_clocks_and_plls(
-        external_xtal_freq_hz,
+        XOSC_CRYSTAL_FREQ,
         pac.XOSC,
         pac.CLOCKS,
         pac.PLL_SYS,
@@ -45,7 +40,7 @@ fn main() -> ! {
 
     let sin = rom_data::float_funcs::fsin::ptr();
 
-    let pins = bsp::Pins::new(
+    let pins = Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
         sio.gpio_bank0,
@@ -67,7 +62,8 @@ fn main() -> ! {
     let mut leds: [RGB8; 4] = [(0, 0, 0).into(); 4];
     let mut t = 0.0;
 
-    let strip_brightness = 64u8;
+    // set brightness to 32/256
+    let strip_brightness = 32u8;
     let animation_speed = 0.1;
 
     loop {
