@@ -201,14 +201,12 @@ fn main() -> ! {
     loop {
         let mut i = 0;
 
-        info!("flash");
         for color in clz {
             if i >= leds.len() {
                 i = 0;
             }
             leds[i] = color;
             i += 1;
-            info!("writed");
             ws.write(leds.iter().copied()).unwrap();
             delay.delay_ms(50);
         }
