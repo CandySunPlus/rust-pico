@@ -15,11 +15,7 @@ use defmt::*;
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use rp_pico as bsp;
 // use sparkfun_pro_micro_rp2040 as bsp;
-use smart_leds::{
-    brightness,
-    hsv::{hsv2rgb, Hsv},
-    SmartLedsWrite, RGB8,
-};
+use smart_leds::{brightness, SmartLedsWrite, RGB8};
 use ws2812_pio::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -86,13 +82,11 @@ fn main() -> ! {
 
             let sin_01 = (sin_11 + 1.0) * 0.5;
 
-            let hue = 360.0 as u8 * sin_01 as u8;
-            let sat = 1.0 as u8;
-            let val = 1.0 as u8;
+            let hue = 360.0 * sin_01;
+            let sat = 1.0;
+            let val = 1.0;
 
-            let rgb = hsv2rgb(Hsv { hue, sat, val });
-
-            info!("R{}G{}B{}", rgb.r, rgb.g, rgb.b);
+            let rgb = hsv2rgb_u8(hue, sat, val);
 
             *led = rgb.into();
         }
@@ -108,4 +102,36 @@ fn main() -> ! {
             t -= 1.0;
         }
     }
+}
+
+pub fn hsv2rgb(hue: f32, sat: f32, val: f32) -> (f32, f32, f32) {
+    let c = val * sat;
+    let v = (hue / 60.0) % 2.0 - 1.0;
+    let v = if v < 0.0 { -v } else { v };
+    let x = c * (1.0 - v);
+    let m = val - c;
+    let (r, g, b) = if hue < 60.0 {
+        (c, x, 0.0)
+    } else if hue < 120.0 {
+        (x, c, 0.0)
+    } else if hue < 180.0 {
+        (0.0, c, x)
+    } else if hue < 240.0 {
+        (0.0, x, c)
+    } else if hue < 300.0 {
+        (x, 0.0, c)
+    } else {
+        (c, 0.0, x)
+    };
+    (r + m, g + m, b + m)
+}
+
+pub fn hsv2rgb_u8(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
+    let r = hsv2rgb(h, s, v);
+
+    (
+        (r.0 * 255.0) as u8,
+        (r.1 * 255.0) as u8,
+        (r.2 * 255.0) as u8,
+    )
 }
