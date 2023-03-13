@@ -88,3 +88,7 @@ path = "src/ws2812.rs"
 [[bin]]
 name = "pwm_led"
 path = "src/pwm_led.rs"
+
+[[bin]]
+name = "pwm_rgb_led"
+path = "src/pwm_rgb_led.rs"

@@ -11,7 +11,6 @@ use rp_pico::hal::sio::Sio;
 use rp_pico::hal::watchdog::Watchdog;
 use rp_pico::hal::{pac, rom_data, Timer};
 use rp_pico::{entry, Pins, XOSC_CRYSTAL_FREQ};
-
 use smart_leds::{brightness, SmartLedsWrite, RGB8};
 use ws2812_pio::Ws2812;
 use {defmt_rtt as _, panic_probe as _};
